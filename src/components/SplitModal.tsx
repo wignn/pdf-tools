@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Check, Scissors } from 'lucide-react';
-import './SplitModal.css';
+import '../styles/ui/SplitModal.css';
 
 interface SplitModalProps {
   isOpen: boolean;

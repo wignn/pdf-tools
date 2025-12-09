@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FileText, FileImage, Scissors, Merge as MergeIcon, RotateCw, Droplets, Lock, Unlock } from 'lucide-react';
 import { pdfOperations } from '../utils/pdfOperations';
-import './ToolsPanel.css';
+import '../styles/ui/ToolsPanel.css';
 
 interface ToolsPanelProps {
   currentFile: string | null;

@@ -31,11 +31,26 @@ export const pdfOperations = {
     return await invoke('rotate_pages', { inputPath, outputPath, rotations });
   },
 
-  async compress(inputPath: string, outputPath: string, quality = 'medium'): Promise<string> {
+  async compress(inputPath: string, outputPath: string, quality: number = 75): Promise<string> {
     try {
-      return await invoke('compress_pdf_native', { inputPath, outputPath, quality });
-    } catch {
-      return await invoke('compress_pdf', { inputPath, outputPath, quality });
+      const { compressPDF } = await import('./pdfCompress');
+      const result = await compressPDF(inputPath, outputPath, quality);
+
+      return JSON.stringify({
+        type: 'compress',
+        result: {
+          type: 'success',
+          output: outputPath,
+          original_size: result.originalSize,
+          compressed_size: result.compressedSize,
+          compression_ratio: result.compressionRatio,
+          quality: result.quality,
+          method: result.method,
+        }
+      });
+    } catch (error) {
+      console.error('Compression error:', error);
+      throw error;
     }
   },
 

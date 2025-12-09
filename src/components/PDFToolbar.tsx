@@ -14,7 +14,6 @@ import { tauriAPI } from '../utils/tauri';
 import PasswordModal from './PasswordModal';
 import SplitModal from './SplitModal';
 import RotateModal from './RotateModal';
-import CompressModal from './CompressModal';
 import '../styles/PDFToolbar.css';
 
 interface PDFToolbarProps {
@@ -30,8 +29,6 @@ export default function PDFToolbar({ selectedFile, onOperationComplete }: PDFToo
   const [showSplitModal, setShowSplitModal] = useState(false);
   const [pdfPageCount, setPdfPageCount] = useState(0);
   const [showRotateModal, setShowRotateModal] = useState(false);
-  const [showCompressModal, setShowCompressModal] = useState(false);
-  const [pdfFileSize, setPdfFileSize] = useState(0);
 
   const handleOCR = async () => {
     if (!selectedFile) return;
@@ -52,37 +49,40 @@ export default function PDFToolbar({ selectedFile, onOperationComplete }: PDFToo
 
   const handleCompress = async () => {
     if (!selectedFile) return;
+    const { save } = await import('@tauri-apps/plugin-dialog');
+    const defaultPath = selectedFile.replace('.pdf', '_compressed.pdf');
+    const outputPath = await save({
+      defaultPath,
+      filters: [{ name: 'PDF', extensions: ['pdf'] }],
+    });
     
-    setLoading(true);
+    if (!outputPath) return;
     
-    try {
-      // Get file size
-      const { invoke } = await import('@tauri-apps/api/core');
-      const stats = await invoke('get_file_stats', { path: selectedFile }) as any;
-      setPdfFileSize(stats.size || 0);
-      setShowCompressModal(true);
-    } catch (error) {
-      console.error('Failed to get file stats:', error);
-      // Show modal anyway with 0 size
-      setPdfFileSize(0);
-      setShowCompressModal(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCompressSubmit = async (quality: number) => {
-    if (!selectedFile) return;
-    
-    const outputPath = selectedFile.replace('.pdf', '_compressed.pdf');
     setLoading(true);
     setActiveOperation('compress');
-    setShowCompressModal(false);
     
     try {
-      const result = await tauriAPI.compressPDF(selectedFile, outputPath, quality);
-      onOperationComplete({ type: 'compress', result });
+      const { pdfOperations } = await import('../utils/pdfOperations');
+      const result = await pdfOperations.compress(selectedFile, outputPath, 50);
+      const data = JSON.parse(result);
+      
+      const formatBytes = (bytes: number) => {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+      };
+      
+      const original = formatBytes(data.result.original_size);
+      const compressed = formatBytes(data.result.compressed_size);
+      const ratio = data.result.compression_ratio;
+      
+      alert(`Compression Complete!\n\nOriginal: ${original}\nCompressed: ${compressed}\nReduction: ${ratio}\n\nSaved to: ${outputPath}`);
+      
+      onOperationComplete({ type: 'compress', result: data });
     } catch (error) {
+      console.error('[PDFToolbar] Compression failed:', error);
       alert('Compression failed: ' + error);
     } finally {
       setLoading(false);
@@ -375,15 +375,6 @@ export default function PDFToolbar({ selectedFile, onOperationComplete }: PDFToo
           isOpen={showRotateModal}
           onClose={() => setShowRotateModal(false)}
           onSubmit={handleRotateSubmit}
-        />
-      )}
-
-      {showCompressModal && (
-        <CompressModal
-          isOpen={showCompressModal}
-          onClose={() => setShowCompressModal(false)}
-          onSubmit={handleCompressSubmit}
-          originalSize={pdfFileSize}
         />
       )}
 

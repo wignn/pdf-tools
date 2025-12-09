@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, RotateCw, RotateCcw } from 'lucide-react';
-import './RotateModal.css';
+import '../styles/ui/RotateModal.css';
 
 interface RotateModalProps {
   isOpen: boolean;

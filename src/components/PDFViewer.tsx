@@ -86,21 +86,20 @@ const PDFViewer = ({ pdfPath, fileName }: PDFViewerProps) => {
   };
 
   const loadAllPageImages = async () => {
-    // Load all pages one by one
     for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
       loadPageImage(pageNum);
     }
   };
 
   const loadPageImage = async (pageNum: number) => {
-    if (pageImages[pageNum]) return; // Already loaded
-    
+    if (pageImages[pageNum]) return;
+
     try {
       const { invoke } = await import('@tauri-apps/api/core');
       const result = await invoke('get_pdf_page_image', { 
         pdfPath, 
         pageNumber: pageNum,
-        scale: 0.8 // Scale factor for quality (0.8 = 120 DPI equivalent)
+        scale: 0.8 
       });
       const resultStr = String(result);
       const cleanJson = resultStr.trim().split('\n').filter(line => line.trim()).pop() || resultStr;

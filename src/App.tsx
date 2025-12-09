@@ -59,7 +59,11 @@ function App() {
 
   const handleOperationComplete = (result: any) => {
     setOperationResult(result);
-    alert(`Operation completed: ${result.type}`);
+    
+    // Don't show alert for compress operation (already handled in PDFToolbar)
+    if (result.type !== 'compress') {
+      alert(`Operation completed: ${result.type}`);
+    }
   };
 
   const handleEditorSave = async (pages: any[]) => {
@@ -256,7 +260,29 @@ function App() {
                       {operationResult && (
                         <div className="result-box">
                           <h3>Operation Result</h3>
-                          <pre>{JSON.stringify(operationResult, null, 2)}</pre>
+                          {operationResult.type === 'compress' ? (
+                            <div className="compress-result">
+                              <p><strong>✅ PDF Compressed Successfully!</strong></p>
+                              <p>📄 Original Size: {(() => {
+                                const bytes = operationResult.result?.result?.original_size || 0;
+                                const k = 1024;
+                                const sizes = ['B', 'KB', 'MB', 'GB'];
+                                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                              })()}</p>
+                              <p>📦 Compressed Size: {(() => {
+                                const bytes = operationResult.result?.result?.compressed_size || 0;
+                                const k = 1024;
+                                const sizes = ['B', 'KB', 'MB', 'GB'];
+                                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                              })()}</p>
+                              <p>📊 Compression Ratio: {operationResult.result?.result?.compression_ratio || '0%'}</p>
+                              <p>💾 Output: {operationResult.result?.result?.output || 'Unknown'}</p>
+                            </div>
+                          ) : (
+                            <pre>{JSON.stringify(operationResult, null, 2)}</pre>
+                          )}
                         </div>
                       )}
                     </div>

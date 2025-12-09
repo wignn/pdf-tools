@@ -1,7 +1,6 @@
 mod database;
 mod python;
 mod pdf_ops;
-mod pdf_compress;
 mod pdf_security;
 
 pub use database::DocumentRecord;
@@ -133,14 +132,20 @@ async fn delete_pages(
 #[tauri::command]
 async fn compress_pdf(
     input_path: String,
-    output_path: String,
-    quality: u32,
+    _output_path: String,
+    _quality: u32,
 ) -> Result<String, String> {
-    python::execute_python(
-        "pdf_editor.py".to_string(),
-        vec!["compress".to_string(), input_path, output_path, quality.to_string()],
-    )
-    .await
+    // Compression now handled by JavaScript/pdf-lib
+    // This is just a passthrough that returns basic info
+    let original_size = std::fs::metadata(&input_path)
+        .map(|m| m.len())
+        .unwrap_or(0);
+    
+    Ok(serde_json::json!({
+        "type": "passthrough",
+        "original_size": original_size,
+        "message": "Use JavaScript compression"
+    }).to_string())
 }
 
 #[tauri::command]
@@ -350,32 +355,6 @@ async fn get_pdf_version_info(pdf_path: String) -> Result<String, String> {
     pdf_security::get_pdf_version(&pdf_path)
 }
 
-#[tauri::command]
-async fn compress_pdf_native(
-    input_path: String,
-    output_path: String,
-    quality: String,
-) -> Result<String, String> {
-    // Try native Rust compression first
-    match pdf_compress::compress_pdf(&input_path, &output_path, &quality) {
-        Ok(msg) => {
-            // Get compression ratio
-            if let Ok(ratio) = pdf_compress::calculate_compression_ratio(&input_path, &output_path) {
-                Ok(format!("{} (Reduced by {:.1}%)", msg, ratio))
-            } else {
-                Ok(msg)
-            }
-        }
-        Err(_) => {
-            // Fallback to Python
-            python::execute_python(
-                "pdf_editor.py".to_string(),
-                vec!["compress".to_string(), input_path, output_path, quality],
-            )
-            .await
-        }
-    }
-}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -418,7 +397,6 @@ pub fn run() {
             get_pdf_security_info,
             validate_pdf_file,
             get_pdf_version_info,
-            compress_pdf_native,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -4,6 +4,7 @@ use std::io::{BufReader, Read};
 use std::path::Path;
 
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct EncryptionParams {
     pub user_password: String,
     pub owner_password: Option<String>,
